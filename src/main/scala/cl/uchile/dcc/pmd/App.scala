@@ -1,4 +1,4 @@
-package prueba.prueba
+package cl.uchile.dcc.pmd
 
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkConf
