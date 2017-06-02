@@ -9,7 +9,9 @@ object ComputeCloseness {
 
     val shortestPaths = MyShortestPaths.run(graph)
     
-    shortestPaths.mapVertices((_, attr) => func(attr))
+    val s = shortestPaths.mapVertices{ (vid, attr) =>  attr.-(vid)}
+    
+    s.mapVertices((_, attr) => func(attr))
   }
 
   def func(v: Map[Long, Int]): Double = {
