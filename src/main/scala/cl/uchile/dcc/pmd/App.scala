@@ -35,11 +35,24 @@ object App {
     val defaultUser = -1L
     // Build the initial Graph
     val graph = Graph.fromEdges(relationships, defaultUser)
-//    graph.triplets.collect.foreach(println(_))
-//    val g = ComputeBetweenness.betweenness(graph)
-//    g.vertices.collect.foreach{println(_)}
-    val results = graph.staticPageRank(20)
-    results.vertices.collect.foreach{println(_)}
+    
+    val dg = ComputeDegree.degree(graph)
+    dg.vertices.collect.foreach{println(_)}
+    
+    /*val idg = ComputeDegree.inDegree(graph)
+    idg.vertices.collect.foreach{println(_)}
+        
+    val odg = ComputeDegree.outDegree(graph)
+    odg.vertices.collect.foreach{println(_)}
+    
+    val pr = graph.staticPageRank(20)
+    pr.vertices.collect.foreach{println(_)}
+    
+    val c = ComputeCloseness.closeness(graph)
+    c.vertices.collect.foreach{println(_)}
+    
+    val b = ComputeBetweenness.betweenness(graph)
+    b.vertices.collect.foreach{println(_)}*/
   }
 
 }
