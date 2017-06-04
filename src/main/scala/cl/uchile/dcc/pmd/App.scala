@@ -20,7 +20,6 @@ object App {
       //exit(1)
     }
     val master = "local[*]";
-    //args(0)
     val inputFile = args(0)
     val outputFile = args(1)
     val conf = new SparkConf().setAppName("SomeAppName").setMaster("local[1]")
