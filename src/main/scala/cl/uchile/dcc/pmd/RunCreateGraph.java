@@ -1,7 +1,7 @@
 package cl.uchile.dcc.pmd;
 
-public class ScalaProject {
+public class RunCreateGraph {
 	 public static void main(String[] args) {
-	        App.main(args);
+	        CreateGraph.main(args);
 	 }
 }

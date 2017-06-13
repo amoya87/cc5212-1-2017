@@ -25,7 +25,7 @@ object App {
       println("Usage: [edgesInputfile] [nodesInputfile] [outputfile]")
       //exit(1)
     }
-    val master = "local[1]";
+    val master = "local[*]";
     val edgesInputfile = args(0)
     val nodesInputfile = args(1)
     val outputfile = args(2)
@@ -88,7 +88,8 @@ object App {
     System.out.println("Betweetness------>")
     val kb = KBetweenness.run(graphCache,3)   
     val kbMap= kb.vertices.map(x=>(x._1.toLong,x._2.toString))    
-    val kbMapCache=kbMap.cache()
+    val kbMapCache=kbMap.cache()    
+    
     
     System.out.println("Nodos------>")
     val nodesMap= nodes.map(x=> (x._1,x._2))
