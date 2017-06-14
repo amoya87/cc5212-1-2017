@@ -23,13 +23,19 @@
 		<scala.compat.version>2.10.*</scala.compat.version>
 	</properties>
 
- 	<repositories>
+	<repositories>
 		<repository>
 			<id>ossrh</id>
 			<name>Sonatype OSS Snapshots</name>
 			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
 		</repository>
-	</repositories> 
+		<repository>
+			<id>dmarcous</id>
+			<name>dmarcous</name>
+			<url>https://dl.bintray.com/spark-packages/maven/</url>
+		</repository>
+
+	</repositories>
 	<pluginRepositories>
 		<pluginRepository>
 			<id>scala-tools.org</id>
@@ -59,19 +65,24 @@
 			<version>0.3.17-SNAPSHOT</version>
 		</dependency>
 		<dependency>
-		    <groupId>org.apache.spark</groupId>
-		    <artifactId>spark-sql_2.11</artifactId>
-		    <version>2.0.0</version>
+			<groupId>org.apache.spark</groupId>
+			<artifactId>spark-sql_2.11</artifactId>
+			<version>2.0.0</version>
 		</dependency>
-		
-<!-- 		<dependency> -->
-<!-- 		    <groupId>org.apache.spark</groupId> -->
-<!-- 		    <artifactId>spark-streaming_2.11</artifactId> -->
-<!-- 		    <version>2.1.1</version> -->
-<!-- 		</dependency>		 -->
+		<dependency>
+			<groupId>dmarcous</groupId>
+			<artifactId>spark-betweenness</artifactId>
+			<version>1.0-s_2.10</version>
+		</dependency>
+
+		<!-- <dependency> -->
+		<!-- <groupId>org.apache.spark</groupId> -->
+		<!-- <artifactId>spark-streaming_2.11</artifactId> -->
+		<!-- <version>2.1.1</version> -->
+		<!-- </dependency> -->
 	</dependencies>
 
- 	<build>
+	<build>
 		<sourceDirectory>src/main/scala</sourceDirectory>
 		<plugins>
 			<plugin>
@@ -114,5 +125,5 @@
 				</executions>
 			</plugin>
 		</plugins>
-	</build>  
+	</build>
 </project>
