@@ -18,22 +18,26 @@ object CreateGraph {
     
     System.out.println(args.length)
 
-    if (args.length != 4) {
-      println("Usage: [jsonInputfile] [outputfileEdges] [outputFileVertices] [resultFile]")
+    if (args.length != 5) {
+      println("Usage: [jsonInputfile] [outputfileEdges] [outputFileVertices] [resultFile] [operation = *3|CreateGraph 2|CalcMetrics 1]")
       //exit(1)
     }
-    val master = "local[*]";
+    //val master = "local[*]";
     val inputFile = args(0)
     val outputEdgesFile = args(1)
     val outputNodesFile = args(2)
     val resultFile = args(3)
-    val conf = new SparkConf().setAppName("CreateGraph").setMaster(master)
+    val conf = new SparkConf().setAppName("CreateGraph")//.setMaster(master)
     val sc = new SparkContext(conf)
-
+    val option = args(4)
+    
+    if (option.toInt > 1) {
+      
+    
     val spark =  SparkSession
       .builder()
       .appName("SomeAplication")
-      .config("spark.master", "local")
+      //.config("spark.master", "local")
       .getOrCreate();
 
     val jsonMap = sc.wholeTextFiles(inputFile).map(x => x._2)
@@ -73,7 +77,10 @@ object CreateGraph {
     
     nodesMap.saveAsTextFile(outputNodesFile)
     arcsMap.saveAsTextFile(outputEdgesFile)    
+  }
     
+    if (option.toInt % 2 == 1) {
+      
     
      val rawDataEdges = sc.textFile(outputEdgesFile)
     val rawDataNodes = sc.textFile(outputNodesFile)
@@ -142,7 +149,7 @@ object CreateGraph {
      
     result.saveAsTextFile(resultFile)
     
-    
+    }
 
   }
 }
