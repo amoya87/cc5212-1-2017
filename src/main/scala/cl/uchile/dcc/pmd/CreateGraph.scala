@@ -9,6 +9,7 @@ import org.apache.spark.graphx.VertexId
 import org.apache.spark.sql.SparkSession
 import com.centrality.kBC.KBetweenness
 import org.apache.spark.graphx.lib.PageRank
+import shapeless.ops.nat.ToInt
 
 
 
@@ -18,20 +19,21 @@ object CreateGraph {
     
     System.out.println(args.length)
 
-    if (args.length != 5) {
+    if (args.length != 6) {
       println("Usage: [jsonInputfile] [outputfileEdges] [outputFileVertices] [resultFile] [operation = *3|CreateGraph 2|CalcMetrics 1]")
       //exit(1)
     }
-    //val master = "local[*]";
+    val master = "local[*]";
     val inputFile = args(0)
     val outputEdgesFile = args(1)
     val outputNodesFile = args(2)
     val resultFile = args(3)
-    val conf = new SparkConf().setAppName("CreateGraph")//.setMaster(master)
+    val conf = new SparkConf().setAppName("CreateGraph").setMaster(master)
     val sc = new SparkContext(conf)
     val option = args(4)
+    val operacion = args(5)
     
-    if (option.toInt > 1) {
+    if (option.toInt == 1) {
       
     
     val spark =  SparkSession
@@ -43,8 +45,8 @@ object CreateGraph {
     val jsonMap = sc.wholeTextFiles(inputFile).map(x => x._2)
     val jsonRdd = spark.read.json(jsonMap)
 
-    jsonRdd.createOrReplaceTempView("network")
-    jsonRdd.printSchema()
+   //jsonRdd.createOrReplaceTempView("network")
+   // jsonRdd.printSchema()
 
     val dfarcs = jsonRdd.select(jsonRdd.col("arcs"))
     val arcsdf=dfarcs.select(org.apache.spark.sql.functions.explode(jsonRdd.col("arcs"))).toDF("arcs")
@@ -79,7 +81,7 @@ object CreateGraph {
     arcsMap.saveAsTextFile(outputEdgesFile)    
   }
     
-    if (option.toInt % 2 == 1) {
+    if (option.toInt == 2) {
       
     
      val rawDataEdges = sc.textFile(outputEdgesFile)
@@ -101,8 +103,8 @@ object CreateGraph {
     
     val edgesC=edgesRDD.cache()
     
-    edgesC.collect().foreach(println(_))    
-    nodesRDD.collect().foreach(println(_)) 
+  //  edgesC.collect().foreach(println(_))    
+  //  nodesRDD.collect().foreach(println(_)) 
     // Build the initial Graph
     
     // Define a default user in case there are relationship with missing user
@@ -110,13 +112,13 @@ object CreateGraph {
     
     val graph = Graph(nodesRDD, edgesRDD, defaultUser)
     
-    val graphCache=graph.cache()
+//    val graphCache=graph.cache()
     
-    val numNodes=graphCache.numVertices
-    val numEdges=graphCache.numEdges
+    val numNodes=graph.numVertices
+    val numEdges=graph.numEdges
  
-    System.out.println("num nodos"+ numNodes)
-    System.out.println("num edges"+ numEdges)
+ //   System.out.println("num nodos"+ numNodes)
+ //   System.out.println("num edges"+ numEdges)
    
     //System.out.println("Closeness------>")
     //val c = ComputeCloseness.closeness(graphCache)    
@@ -124,31 +126,30 @@ object CreateGraph {
     //c.triplets.saveAsTextFile(outputfile)    
     //val closeMapCache=closeMap.cache()
     
-    System.out.println("Grado------>")
-    val dg = ComputeDegree.degree(graphCache)   
-    val dgMap= dg.vertices.map(x=>(x._1.toLong,x._2.toString))
-    val dgMapCache=dgMap.cache()
-    
-    System.out.println("Betweetness------>")
-    val kb = KBetweenness.run(graphCache,3)   
-    val kbMap= kb.vertices.map(x=>(x._1.toLong,x._2.toString))    
-    val kbMapCache=kbMap.cache()    
-    
-    System.out.println("PageRank------>")
-    val rankGraph=PageRank.run(graphCache,10, 0.15)    
-    val rankMap= rankGraph.vertices.map(x=>(x._1.toLong,x._2.toString))    
-    //rankMap.collect().foreach(println(_))
-    
-    System.out.println("Nodos------>")
+ //   System.out.println("Grado------>")
     val nodesOut= nodesRDD.map(x=> (x._1,x._2))
-    //val joinMaps=nodesMap.join(dgMapCache).join(closeMapCache).join(kbMapCache)
-    val joinMaps=nodesOut.join(dgMapCache).join(kbMapCache).join(rankMap)
-    //val result=joinMaps.map(x=> x._1+","+x._2._1._1._1+","+x._2._1._1._2+","+x._2._1._2+","+x._2._2+","+graphCache.numEdges+","+ graphCache.numVertices)
-    val result=joinMaps.map(x=> x._1+","+x._2._1._1._1+","+x._2._1._1._2+","+x._2._1._2+","+x._2._2+","+numNodes+","+numEdges)
+    var result:RDD[String]=null
+    if(operacion=="d"){
+       val dg = ComputeDegree.degree(graph)   
+       val dgMap= dg.vertices.map(x=>(x._1.toLong,x._2.toString))
+       val joinMaps=nodesOut.join(dgMap)       
+       result=joinMaps.map(x=> x._1+","+x._2._1+","+x._2._2+","+numNodes+","+numEdges)
+    }
     
-     
-    result.saveAsTextFile(resultFile)
+    if(operacion=="b"){
+       val kb = KBetweenness.run(graph,3)   
+       val kbMap= kb.vertices.map(x=>(x._1.toLong,x._2.toString))    
+       val joinMaps=nodesOut.join(kbMap)
+       result=joinMaps.map(x=> x._1+","+x._2._1+","+x._2._2+","+numNodes+","+numEdges)
+    }
     
+    if(operacion=="r"){
+       val rankGraph=PageRank.run(graph,10, 0.15)    
+       val rankMap= rankGraph.vertices.map(x=>(x._1.toLong,x._2.toString))    
+       val joinMaps=nodesOut.join(rankMap)
+       result=joinMaps.map(x=> x._1+","+x._2._1+","+x._2._2+","+numNodes+","+numEdges)
+    }    
+    result.saveAsTextFile(resultFile)    
     }
 
   }
