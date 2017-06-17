@@ -10,6 +10,7 @@ import org.apache.spark.sql.SparkSession
 import com.centrality.kBC.KBetweenness
 import org.apache.spark.graphx.lib.PageRank
 import shapeless.ops.nat.ToInt
+import org.apache.spark.graphx.PartitionStrategy
 
 
 
@@ -20,8 +21,7 @@ object CreateGraph {
     System.out.println(args.length)
 
     if (args.length != 6) {
-      println("Usage: [jsonInputfile] [outputfileEdges] [outputFileVertices] [resultFile] [operation = *3|CreateGraph 2|CalcMetrics 1]")
-      //exit(1)
+      println("Usage: [jsonInputfile] [outputfileEdges] [outputFileVertices] [resultFile] [operation = *3|CreateGraph 1|CalcMetrics 2]")
     }
     val master = "local[*]";
     val inputFile = args(0)
@@ -33,20 +33,15 @@ object CreateGraph {
     val option = args(4)
     val operacion = args(5)
     
-    if (option.toInt == 1) {
-      
+    if (option.toInt == 1) {      
     
     val spark =  SparkSession
       .builder()
       .appName("SomeAplication")
-      //.config("spark.master", "local")
       .getOrCreate();
 
     val jsonMap = sc.wholeTextFiles(inputFile).map(x => x._2)
     val jsonRdd = spark.read.json(jsonMap)
-
-   //jsonRdd.createOrReplaceTempView("network")
-   // jsonRdd.printSchema()
 
     val dfarcs = jsonRdd.select(jsonRdd.col("arcs"))
     val arcsdf=dfarcs.select(org.apache.spark.sql.functions.explode(jsonRdd.col("arcs"))).toDF("arcs")
@@ -67,13 +62,6 @@ object CreateGraph {
     val nodesRdd=filterNodes.rdd
     val nodesCache=nodesRdd.cache()
 
-    //val relationships:RDD[Edge[VertexId]]=arcsCache.map(x=>new Edge(x.get(0).asInstanceOf[Number].longValue, x.get(1).asInstanceOf[Number].longValue, 0L))
-    //relationships.collect().foreach(println(_))
-
-    //val defaultUser = -1L
-    // Build the initial Graph
-    //val graph = Graph.fromEdges(relationships, defaultUser)
-    
     val nodesMap= nodesRdd.map(x=>x.get(0).asInstanceOf[Number].longValue+","+x.get(1)+","+ x.get(2))
     val arcsMap= arcsRdd.map(x=>x.get(0)+","+x.get(1))
     
@@ -96,37 +84,18 @@ object CreateGraph {
     
     val nodesRDD: RDD[(VertexId,Any)]= rawDataNodes.map(x=> x.split(",")).map(y=> (y(0).toLong, y(1)+","+ y(2)))
         
-
-    
-    //val relationships:RDD[Edge[VertexId]]=arcsCache.map(x=>new Edge(x.get(0).asInstanceOf[Number].longValue, x.get(1).asInstanceOf[Number].longValue, 0L))
-    
-    
+   
     val edgesC=edgesRDD.cache()
     
-  //  edgesC.collect().foreach(println(_))    
-  //  nodesRDD.collect().foreach(println(_)) 
-    // Build the initial Graph
-    
-    // Define a default user in case there are relationship with missing user
-    val defaultUser = -1L
+     val defaultUser = -1L
     
     val graph = Graph(nodesRDD, edgesRDD, defaultUser)
     
-//    val graphCache=graph.cache()
+    graph.partitionBy(PartitionStrategy.RandomVertexCut);
     
     val numNodes=graph.numVertices
     val numEdges=graph.numEdges
  
- //   System.out.println("num nodos"+ numNodes)
- //   System.out.println("num edges"+ numEdges)
-   
-    //System.out.println("Closeness------>")
-    //val c = ComputeCloseness.closeness(graphCache)    
-    //val closeMap= c.vertices.map(x=>(x._1.toLong,x._2.toString))
-    //c.triplets.saveAsTextFile(outputfile)    
-    //val closeMapCache=closeMap.cache()
-    
- //   System.out.println("Grado------>")
     val nodesOut= nodesRDD.map(x=> (x._1,x._2))
     var result:RDD[String]=null
     if(operacion=="d"){
@@ -145,12 +114,15 @@ object CreateGraph {
     
     if(operacion=="r"){
        val rankGraph=PageRank.run(graph,10, 0.15)    
-       val rankMap= rankGraph.vertices.map(x=>(x._1.toLong,x._2.toString))    
+       val rankSum = rankGraph.vertices.values.sum()
+       val graphRank=rankGraph.mapVertices((id, rank) => rank / rankSum)
+       val rankMap= graphRank.vertices.map(x=>(x._1.toLong,x._2.toString))    
        val joinMaps=nodesOut.join(rankMap)
        result=joinMaps.map(x=> x._1+","+x._2._1+","+x._2._2+","+numNodes+","+numEdges)
-    }    
+    }        
     result.saveAsTextFile(resultFile)    
     }
 
   }
+   
 }
