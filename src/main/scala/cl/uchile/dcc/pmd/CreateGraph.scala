@@ -72,7 +72,7 @@ object CreateGraph {
     if (option.toInt == 2) {
       
     
-     val rawDataEdges = sc.textFile(outputEdgesFile)
+    val rawDataEdges = sc.textFile(outputEdgesFile)
     val rawDataNodes = sc.textFile(outputNodesFile)
     
     def convertToEdges(line: String)={
@@ -91,7 +91,7 @@ object CreateGraph {
     
     val graph = Graph(nodesRDD, edgesRDD, defaultUser)
     
-    graph.partitionBy(PartitionStrategy.RandomVertexCut);
+    val graphC=graph.cache();
     
     val numNodes=graph.numVertices
     val numEdges=graph.numEdges
@@ -99,21 +99,21 @@ object CreateGraph {
     val nodesOut= nodesRDD.map(x=> (x._1,x._2))
     var result:RDD[String]=null
     if(operacion=="d"){
-       val dg = ComputeDegree.degree(graph)   
+       val dg = ComputeDegree.degree(graphC)   
        val dgMap= dg.vertices.map(x=>(x._1.toLong,x._2.toString))
        val joinMaps=nodesOut.join(dgMap)       
        result=joinMaps.map(x=> x._1+","+x._2._1+","+x._2._2+","+numNodes+","+numEdges)
     }
     
     if(operacion=="b"){
-       val kb = KBetweenness.run(graph,3)   
+       val kb = KBetweenness.run(graphC,3)   
        val kbMap= kb.vertices.map(x=>(x._1.toLong,x._2.toString))    
        val joinMaps=nodesOut.join(kbMap)
        result=joinMaps.map(x=> x._1+","+x._2._1+","+x._2._2+","+numNodes+","+numEdges)
     }
     
     if(operacion=="r"){
-       val rankGraph=PageRank.run(graph,10, 0.15)    
+       val rankGraph=PageRank.run(graphC,10, 0.15)    
        val rankSum = rankGraph.vertices.values.sum()
        val graphRank=rankGraph.mapVertices((id, rank) => rank / rankSum)
        val rankMap= graphRank.vertices.map(x=>(x._1.toLong,x._2.toString))    
